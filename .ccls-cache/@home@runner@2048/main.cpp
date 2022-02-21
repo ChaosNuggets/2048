@@ -21,6 +21,21 @@ random_device r;
 seed_seq seed{r(), r(), r(), r(), r(), r(), r(), r()};
 mt19937 e1(seed);
 
+vector<int> freeIndexes; //Can be updated using PlaceNewNumber::getFreeIndexes()
+
+int row;
+int column;
+void forEach(void (*doThing)(), int rowEnd, int columnEnd) {
+    for (row = 0; row < rowEnd; row++) {
+        for (column = 0; column < columnEnd; column++) {
+            doThing();
+        }
+    }
+}
+void forEach(void (*doThing)()) {
+    forEach(doThing, 4, 4);
+}
+
 class PlaceNewNumber {
     private:
     static int generateNumber() {
@@ -34,22 +49,18 @@ class PlaceNewNumber {
         }
     }
 
-    public:
-    static vector<int> getFreeIndexes() {
-        vector<int> freeIndexes;
-        for (int row = 0; row < 4; row++) {
-            for (int column = 0; column < 4; column++) {
-                if (grid[row][column] == 0) {
-                    freeIndexes.push_back(4*row + column);
-                }
-            }
+    static void testIfFree() {
+        if (grid[row][column] == 0) {
+            freeIndexes.push_back(4*row + column);
         }
-        return freeIndexes;
     }
 
-    private:
+    static void getFreeIndexes() {
+        forEach(testIfFree);
+    }
+
     static int selectIndex() {
-        vector<int> freeIndexes = getFreeIndexes();
+        getFreeIndexes();
         if (freeIndexes.size() == 0) return -1;
         uniform_int_distribution<int> uniform_dist(0, freeIndexes.size()-1);
         return freeIndexes[uniform_dist(e1)];
@@ -64,25 +75,28 @@ class PlaceNewNumber {
     }
 };
 class ShowGrid {
-    public:
-    static void showGrid() {
-        for (int row = 0; row < 4; row++) {
-            for (int column = 0; column < 4; column++) {
-                if (grid[row][column] == 0) {
-                    cout << ". ";
-                }
-                else {
-                    cout << grid[row][column] << " ";
-                }
-            }
+    private:
+    static void showNumber() {
+        if (grid[row][column] == 0) {
+            cout << ". ";
+        }
+        else {
+            cout << grid[row][column] << " ";
+        }
+        if (column == 3) {
             cout << endl;
         }
+    }
+    public:
+    static void showGrid() {
+        forEach(showNumber);
     }
 };
 class Alive {
     private:
     static bool anyFreeIndexes() {
-        if (PlaceNewNumber::getFreeIndexes().size() > 0) return true;
+        //One of the free indexes has been filled in
+        if (freeIndexes.size() > 1) return true;
         return false;
     }
 
@@ -135,117 +149,51 @@ class GetInput {
         }
     }
 };
-class MoveNumbers {
+class MergeAndMoveNumbers {
     private:
-    //DOWN = +verticalLookDirection
-    static int verticalMoveDirection;
-    static int startRow;
-    static int rowIncrement;
-
-    //RIGHT = +horizontalLookDirection
-    static int horizontalMoveDirection;
-    static int startColumn;
-    static int columnIncrement;
-
-    static void setDefaults() {
-        verticalMoveDirection = 0;
-        startRow = 0;
-        rowIncrement = 1;
-
-        horizontalMoveDirection = 0;
-        startColumn = 0;
-        columnIncrement = 1;
-    }
-
-    static void setVariables() {
-        setDefaults();
-        switch (currentDirection) {
-            case UP:
-                verticalMoveDirection = -1;
-                startRow = 1;
-                rowIncrement = 1;
-                break;
-            case DOWN:
-                verticalMoveDirection = 1;
-                startRow = 2;
-                rowIncrement = -1;
-                break;
-            case LEFT:
-                horizontalMoveDirection = -1;
-                startColumn = 1;
-                columnIncrement = 1;
-                break;
-            case RIGHT:
-                horizontalMoveDirection = 1;
-                startColumn = 2;
-                columnIncrement = -1;
-                break;
-            case INVALID:
-                throw "what";
-                break;
-        }
-    }
-
-    static bool outOfBounds(int number) {
-        return number < 0 || number > 3;
-    }
-
-    static void moveOne(int row, int column) {
-        bool hasMoved = false;
-        if (verticalMoveDirection != 0) { //If supposed to look vertically
-            int lookingAtRow;
-            for (lookingAtRow = row+verticalMoveDirection; !outOfBounds(lookingAtRow); lookingAtRow+=verticalMoveDirection) { //Look through rows until it's out of bounds
-                if (grid[lookingAtRow][column] != 0) { //If it sees a tile
-                    grid[lookingAtRow-verticalMoveDirection][column] = grid[row][column]; //Move to previous tile that was free
-                    grid[row][column] = 0; //Make the square that used to have the tile 0
-                    hasMoved = true;
-                    break;
+    static void leftMerge() {
+        for (int checkingColumn = column + 1; checkingColumn < 4; checkingColumn++) {
+            if (grid[row][checkingColumn] != 0) {
+                //If can merge
+                if (grid[row][checkingColumn] == grid[row][column]) {
+                    grid[row][column] *= 2; //Double left tile
+                    grid[row][checkingColumn] = 0; //Destroy right tile
+                    column = checkingColumn + 1; //We only need to check past the tile we have just destroyed
                 }
-            }
-            if (!hasMoved) {
-                grid[lookingAtRow-verticalMoveDirection][column] = grid[row][column]; //Move to previous tile that was free
-                grid[row][column] = 0; //Make the square that used to have the tile 0
+                break;
             }
         }
-        
-        else if (horizontalMoveDirection != 0) {
-            int lookingAtColumn;
-            for (lookingAtColumn = column+horizontalMoveDirection; !outOfBounds(lookingAtColumn); lookingAtColumn+=horizontalMoveDirection) { //Look through rows until it's out of bounds
-                if (grid[row][lookingAtColumn] != 0) { //If it sees a tile
-                    grid[row][lookingAtColumn-horizontalMoveDirection] = grid[row][column]; //Move to previous tile that was free
-                    grid[row][column] = 0; //Make the square that used to have the tile 0
-                    hasMoved = true;
-                    break;
-                }
-            }
-            if (!hasMoved) {
-                grid[row][lookingAtColumn-horizontalMoveDirection] = grid[row][column]; //Move to previous tile that was free
-                grid[row][column] = 0; //Make the square that used to have the tile 0
-            }
-        }
+    }
+    vector<int> amountErased(4, 0); //Index 0 stores # erased in row 0
+    static void leftMove() {
+        if (grid[row][column] == 0) {
+            grid[row].erase(grid[row].begin() + column);
             
-        else {
-            throw "what2";
         }
     }
-
-    static void moveEach() {
-        for (int row = startRow; !outOfBounds(row); row+=rowIncrement) {
-            for (int column = startColumn; !outOfBounds(column); column+=columnIncrement) {
-                //If current tile is not 0
-                if (grid[row][column] != 0) {
-                    moveOne(row, column);
-                }
-            }
-        }
+    static void doLeft() {
+        forEach(leftMerge)
     }
 
     public:
-    static void moveNumbers() {
-        //Set variables based on input
-        setVariables();
-        //Merge t
-        moveEEach();ch();
+    static void mergeAndMoveNumbers() {
+        switch (currentDirection) {
+            case UP:
+                doUp();
+                break;
+            case DOWN:
+                doDown();
+                break;
+            case LEFT:
+                doLeft();
+                break;
+            case RIGHT:
+                doRight();
+                break;
+            case INVALID:
+                throw "what2";
+                break;
+        }
     }
 };
 
@@ -259,7 +207,7 @@ int main() {
         }
         GetInput::getInput();
         
-        MoveNumbers::moveNumbers();
+        MergeAndMoveNumbers::mergeAndMoveNumbers();
     }
     return 0;
 }
