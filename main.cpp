@@ -149,8 +149,19 @@ class GetInput {
         }
     }
 };
-class MergeAndMoveNumbers {
+class DoDirection {
+    public:
+    void merge(void (*func)()) {
+        
+    }
+
+    void move(void (*func)()) {
+        
+    }
+}; //TODO: finish this
+class DoLeft {
     private:
+    static int amountRemoved;
     static void leftMerge() {
         for (int checkingColumn = column + 1; checkingColumn < 4; checkingColumn++) {
             if (grid[row][checkingColumn] != 0) {
@@ -164,17 +175,50 @@ class MergeAndMoveNumbers {
             }
         }
     }
-    static vector<int> amountErased; //Index 0 stores # erased in row 0
     static void leftMove() {
-        if (grid[row][column] == 0) {
-            grid[row].erase(grid[row].begin() + column);
-            
+        if (grid[row][column-amountRemoved] == 0) {
+            grid[row].erase(grid[row].begin() + column-amountRemoved);
+            grid[row].push_back(0);
+            amountRemoved++;
         }
     }
+    public:
     static void doLeft() {
-        forEach(leftMerge)
+        amountRemoved = 0;
+        forEach(leftMerge, 4, 3);
+        forEach(leftMove, 4, 3);
     }
-
+};
+class DoRight {
+    private:
+    static void rightMerge() {
+        int currentColumn = 3-column; //Invert column (now we're looking from right to left)
+        for (int checkingColumn = currentColumn - 1; checkingColumn >= 0; checkingColumn--) {
+            if (grid[row][checkingColumn] != 0) {
+                //If can merge
+                if (grid[row][checkingColumn] == grid[row][currentColumn]) {
+                    grid[row][currentColumn] *= 2; //Double right tile
+                    grid[row][checkingColumn] = 0; //Destroy right tile
+                    column = checkingColumn + 1; //We only need to check past the tile we have just destroyed
+                }
+                break;
+            }
+        }
+    }
+    static void leftMove() {
+        int currentColumn = 3-column; //Invert column (now we're going from right to left)
+        if (grid[row][column] == 0) {
+            grid[row].erase(grid[row].begin() + column);
+            grid[row].insert(grid[row].begin(), 0);
+        }
+    }
+    public:
+    static void doLeft() {
+        forEach(rightMerge, 4, 3);
+        forEach(leftMove, 4, 3);
+    }
+};
+class MergeAndMoveNumbers {
     public:
     static void mergeAndMoveNumbers() {
         switch (currentDirection) {
@@ -185,7 +229,7 @@ class MergeAndMoveNumbers {
                 doDown();
                 break;
             case LEFT:
-                doLeft();
+                DoLeft::doLeft();
                 break;
             case RIGHT:
                 doRight();
