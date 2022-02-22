@@ -27,11 +27,15 @@ int score;
 
 int row;
 int column;
+bool doBreak;
 void forEach(void (*doThing)(), int rowEnd, int columnEnd) {
+    doBreak = false;
     for (row = 0; row < rowEnd; row++) {
         for (column = 0; column < columnEnd; column++) {
             doThing();
+            if (doBreak) break;
         }
+        if (doBreak) break;
     }
 }
 void forEach(void (*doThing)()) {
@@ -93,6 +97,24 @@ class ShowGrid {
     public:
     static void showGrid() {
         forEach(showNumber);
+    }
+};
+class IsThere2048 {
+    private:
+    static void testFor2048() {
+        if (grid[row][column] == 2048) doBreak = true;
+    }
+    public:
+    static bool isThere2048() {
+        forEach(testFor2048);
+        //If it broke out of the loop(if it found 2048), return true
+        if (doBreak) return true;
+        return false;
+    }
+    static void sendCongratulationMsg() {
+        cout << "Congratulations! You won!\n";
+        cout << "Press enter to continue playing";
+        cin.ignore();
     }
 };
 class Alive {
@@ -346,15 +368,20 @@ class CalculateScore {
 };
 
 int main() {
+    bool hasWon = false;
     cout << "\033[2J\033[0;0H"; //Clear screen
     cout << "Enter w, a, s, or d to move numbers\n";
     while (alive) {
         PlaceNewNumber::placeNewNumber();
         ShowGrid::showGrid();
+        if (hasWon = false && IsThere2048::isThere2048()) {
+            IsThere2048::sendCongratulationMsg();
+        }
         if (!Alive::alive()) {
             break;
         }
         vector<vector<int>> prevGrid = grid;
+        //Keep the player in this loop until they actually move/merge something
         while (grid == prevGrid) {
             GetInput::getInput();
             MergeAndMoveNumbers::mergeAndMoveNumbers();
