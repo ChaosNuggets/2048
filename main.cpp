@@ -22,6 +22,7 @@ seed_seq seed{r(), r(), r(), r(), r(), r(), r(), r()};
 mt19937 e1(seed);
 
 vector<int> freeIndexes; //Can be updated using PlaceNewNumber::getFreeIndexes()
+int amountRemoved; //Used in move functions
 
 int row;
 int column;
@@ -56,6 +57,7 @@ class PlaceNewNumber {
     }
 
     static void getFreeIndexes() {
+        freeIndexes.clear();
         forEach(testIfFree);
     }
 
@@ -144,7 +146,7 @@ class GetInput {
         getline(cin, input);
         setDirection(input);
         if (currentDirection == INVALID) {
-            cout << "Enter w, a, s, or d\n"
+            cout << "Enter w, a, s, or d\n";
             getInput();
         }
     }
@@ -161,7 +163,6 @@ class DoDirection {
 }; //TODO: finish this
 class DoLeft {
     private:
-    static int amountRemoved;
     static void leftMerge() {
         for (int checkingColumn = column + 1; checkingColumn < 4; checkingColumn++) {
             if (grid[row][checkingColumn] != 0) {
@@ -176,10 +177,16 @@ class DoLeft {
         }
     }
     static void leftMove() {
-        if (grid[row][column-amountRemoved] == 0) {
-            grid[row].erase(grid[row].begin() + column-amountRemoved);
-            grid[row].push_back(0);
+        int checkingColumn = column-amountRemoved;
+        if (grid[row][checkingColumn] == 0) {
+            for (int i = checkingColumn; i <= 2; i++) {
+                grid[row][i] = grid[row][i+1];
+            }
+            grid[row][3] = 0;
             amountRemoved++;
+        }
+        if (column == 2) {
+            amountRemoved = 0;
         }
     }
     public:
@@ -187,6 +194,8 @@ class DoLeft {
         amountRemoved = 0;
         forEach(leftMerge, 4, 3);
         forEach(leftMove, 4, 3);
+        ShowGrid::showGrid();
+        cout << endl;
     }
 };
 class DoRight {
@@ -223,16 +232,16 @@ class MergeAndMoveNumbers {
     static void mergeAndMoveNumbers() {
         switch (currentDirection) {
             case UP:
-                doUp();
+                // doUp();
                 break;
             case DOWN:
-                doDown();
+                // doDown();
                 break;
             case LEFT:
                 DoLeft::doLeft();
                 break;
             case RIGHT:
-                doRight();
+                // doRight();
                 break;
             case INVALID:
                 throw "what2";
