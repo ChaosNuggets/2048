@@ -23,6 +23,7 @@ mt19937 e1(seed);
 
 vector<int> freeIndexes; //Can be updated using PlaceNewNumber::getFreeIndexes()
 int amountRemoved; //Used in move functions
+int score;
 
 int row;
 int column;
@@ -161,6 +162,81 @@ class DoDirection {
         
     }
 }; //TODO: finish this
+class DoUp {
+    //Everything's inverted here so we can stil use the forEach function. We are now iterating through the grid from top to bottom, then move one column right. Column = row, and row = column. All the other variables are not inverted.
+    private:
+    static void upMerge() {
+        for (int checkingRow = column + 1; checkingRow < 4; checkingRow++) {
+            if (grid[checkingRow][row] != 0) {
+                //If can merge
+                if (grid[checkingRow][row] == grid[column][row]) {
+                    grid[column][row] *= 2; //Double upper tile
+                    grid[checkingRow][row] = 0; //Destroy lower tile
+                    column = checkingRow + 1; //We only need to check past the tile we have just destroyed
+                }
+                break;
+            }
+        }
+    }
+    static void upMove() {
+        int checkingRow = column-amountRemoved;
+        if (grid[checkingRow][row] == 0) {
+            //Move everything in the row
+            for (int i = checkingRow; i <= 2; i++) {
+                grid[i][row] = grid[i+1][row];
+            }
+            grid[3][row] = 0; //Make lowest tile in the row 0
+            amountRemoved++;
+        }
+        if (column == 2) {
+            amountRemoved = 0;
+        }
+    }
+    public:
+    static void doUp() {
+        amountRemoved = 0;
+        forEach(upMerge, 4, 3);
+        forEach(upMove, 4, 3);
+    }
+};
+class DoDown {
+    //Everything's inverted here so we can stil use the forEach function. We are now iterating through the grid from bottom to top, then move one column right. Column = row, and row = column. All the other variables are not inverted.
+    private:
+    static void downMerge() {
+        int currentRow = 3-column; //Invert row (now we're looking from bottom to top)
+        for (int checkingRow = currentRow - 1; checkingRow >= 0; checkingRow--) {
+            if (grid[checkingRow][row] != 0) {
+                //If can merge
+                if (grid[checkingRow][row] == grid[currentRow][row]) {
+                    grid[currentRow][row] *= 2; //Double right tile
+                    grid[checkingRow][row] = 0; //Destroy right tile
+                    column = checkingRow + 1; //We only need to check past the tile we have just destroyed
+                }
+                break;
+            }
+        }
+    }
+    static void downMove() {
+        int checkingRow = 3-column+amountRemoved; //Invert row (now we're going from bottom to top)
+        if (grid[checkingRow][row] == 0) {
+            //Move everything in the row
+            for (int i = checkingRow; i >= 1; i--) {
+                grid[i][row] = grid[i-1][row];
+            }
+            grid[0][row] = 0; //Make the top tile in the column 0
+            amountRemoved++;
+        }
+        if (column == 2) {
+            amountRemoved = 0;
+        }
+    }
+    public:
+    static void doDown() {
+        amountRemoved = 0;
+        forEach(downMerge, 4, 3);
+        forEach(downMove, 4, 3);
+    }
+};
 class DoLeft {
     private:
     static void leftMerge() {
@@ -179,10 +255,11 @@ class DoLeft {
     static void leftMove() {
         int checkingColumn = column-amountRemoved;
         if (grid[row][checkingColumn] == 0) {
+            //Move everything in the column
             for (int i = checkingColumn; i <= 2; i++) {
                 grid[row][i] = grid[row][i+1];
             }
-            grid[row][3] = 0;
+            grid[row][3] = 0; //Make rightmost tile in the row 0
             amountRemoved++;
         }
         if (column == 2) {
@@ -194,8 +271,6 @@ class DoLeft {
         amountRemoved = 0;
         forEach(leftMerge, 4, 3);
         forEach(leftMove, 4, 3);
-        ShowGrid::showGrid();
-        cout << endl;
     }
 };
 class DoRight {
@@ -214,17 +289,25 @@ class DoRight {
             }
         }
     }
-    static void leftMove() {
-        int currentColumn = 3-column; //Invert column (now we're going from right to left)
-        if (grid[row][column] == 0) {
-            grid[row].erase(grid[row].begin() + column);
-            grid[row].insert(grid[row].begin(), 0);
+    static void rightMove() {
+        int checkingColumn = 3-column+amountRemoved; //Invert column (now we're going from right to left)
+        if (grid[row][checkingColumn] == 0) {
+            //Move everything in the column
+            for (int i = checkingColumn; i >= 1; i--) {
+                grid[row][i] = grid[row][i-1];
+            }
+            grid[row][0] = 0; //Make the leftmost tile in the row 0
+            amountRemoved++;
+        }
+        if (column == 2) {
+            amountRemoved = 0;
         }
     }
     public:
-    static void doLeft() {
+    static void doRight() {
+        amountRemoved = 0;
         forEach(rightMerge, 4, 3);
-        forEach(leftMove, 4, 3);
+        forEach(rightMove, 4, 3);       
     }
 };
 class MergeAndMoveNumbers {
@@ -232,16 +315,16 @@ class MergeAndMoveNumbers {
     static void mergeAndMoveNumbers() {
         switch (currentDirection) {
             case UP:
-                // doUp();
+                DoUp::doUp();
                 break;
             case DOWN:
-                // doDown();
+                DoDown::doDown();
                 break;
             case LEFT:
                 DoLeft::doLeft();
                 break;
             case RIGHT:
-                // doRight();
+                DoRight::doRight();
                 break;
             case INVALID:
                 throw "what2";
@@ -249,8 +332,21 @@ class MergeAndMoveNumbers {
         }
     }
 };
+class CalculateScore {
+    private:
+    static void addToScore() {
+        score += grid[row][column];
+    }
+    public:
+    static void calculateScore() {
+        score = 0;
+        forEach(addToScore);
+        cout << "Game over, score: " << score << endl;
+    }
+};
 
 int main() {
+    cout << "\033[2J\033[0;0H"; //Clear screen
     cout << "Enter w, a, s, or d to move numbers\n";
     while (alive) {
         PlaceNewNumber::placeNewNumber();
@@ -258,9 +354,13 @@ int main() {
         if (!Alive::alive()) {
             break;
         }
-        GetInput::getInput();
-        
-        MergeAndMoveNumbers::mergeAndMoveNumbers();
+        vector<vector<int>> prevGrid = grid;
+        while (grid == prevGrid) {
+            GetInput::getInput();
+            MergeAndMoveNumbers::mergeAndMoveNumbers();
+        }
+        cout << "\033[2J\033[0;0H"; //Clear screen
     }
+    CalculateScore::calculateScore();
     return 0;
 }
