@@ -119,7 +119,7 @@ class IsThere2048 {
     }
     static void sendCongratulationMsg() {
         cout << "Congratulations! You won!\n";
-        cout << "Press enter to continue playing";
+        cout << "Press enter to continue playing\n";
         cin.ignore();
     }
 };
@@ -356,7 +356,7 @@ class CalculateScore {
         score = 0;
         forEach(addToScore);
         cout << "Game over, score: " << score << endl;
-        cout << "Press enter to exit";
+        cout << "Press enter to exit\n";
         cin.ignore();
     }
 };
@@ -379,7 +379,7 @@ int main() {
             GetInput::getInput();
             MergeAndMoveNumbers::mergeAndMoveNumbers();
         }
-        cout << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"; //Clear screen
+        cout << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"; //Clear screen
     }
     CalculateScore::calculateScore();
     return 0;
