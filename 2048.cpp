@@ -367,8 +367,9 @@ int main() {
     while (alive) {
         PlaceNewNumber::placeNewNumber();
         ShowGrid::showGrid();
-        if (hasWon = false && IsThere2048::isThere2048()) {
+        if (hasWon == false && IsThere2048::isThere2048()) {
             IsThere2048::sendCongratulationMsg();
+            hasWon = true;
         }
         if (!Alive::alive()) {
             break;
