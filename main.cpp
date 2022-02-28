@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 #include <random>
 #include <string>
 
@@ -33,9 +34,8 @@ void forEach(void (*doThing)(), int rowEnd, int columnEnd) {
     for (row = 0; row < rowEnd; row++) {
         for (column = 0; column < columnEnd; column++) {
             doThing();
-            if (doBreak) break;
+            if (doBreak) return;
         }
-        if (doBreak) break;
     }
 }
 void forEach(void (*doThing)()) {
@@ -48,10 +48,10 @@ class PlaceNewNumber {
         uniform_int_distribution<int> uniform_dist(1, 10);
         //10% chance of generating a 4
         if (uniform_dist(e1) == 1) {
-            return 4;
+            return 14;
         }
         else {
-            return 2;
+            return 7;
         }
     }
 
@@ -85,13 +85,18 @@ class ShowGrid {
     private:
     static void showNumber() {
         if (grid[row][column] == 0) {
-            cout << ". ";
+            cout << ".     ";
         }
         else {
             cout << grid[row][column] << " ";
+            //Make it so that the numbers line up vertically
+            int numberOfDigits = floor(log10(static_cast<float>(grid[row][column])));
+            for (float i = 0; i < 4-numberOfDigits; i++) {
+                cout << ' ';
+            }
         }
         if (column == 3) {
-            cout << endl;
+            cout << "\n\n";
         }
     }
     public:
@@ -113,7 +118,7 @@ class IsThere2048 {
     }
     static void sendCongratulationMsg() {
         cout << "Congratulations! You won!\n";
-        cout << "Press enter to continue playing";
+        cout << "Press enter to continue playing\n";
         cin.ignore();
     }
 };
@@ -125,25 +130,25 @@ class Alive {
         return false;
     }
 
+    static void testHorizontal() {
+        if (grid[row][column] == grid[row][column+1]) {
+            doBreak = true;
+        }
+    }
+
+    static void testVertical() {
+        if (grid[row][column] == grid[row+1][column]) {
+            doBreak = true;
+        }
+    }
+
     static bool canNumbersMerge() {
-        //Test horizontal
-        for (int row = 0; row < 4; row++) {
-            for (int column = 0; column < 3; column++) {
-                if (grid[row][column] == grid[row][column+1]) {
-                    return true;
-                }
-            }
-        }
-        //Test vertical
-        for (int row = 0; row < 3; row++) {
-            for (int column = 0; column < 4; column++) {
-                if (grid[row][column] == grid[row+1][column]) {
-                    return true;
-                }
-            }
-        }
-        //If all tests fail return false
-        return false;
+        forEach(testHorizontal, 4, 3);
+        if (doBreak) return true;
+
+        forEach(testVertical, 3, 4);
+        //If this test passed return true, otherwise return false
+        return doBreak;
     }
 
     public:
@@ -176,26 +181,38 @@ class GetInput {
 };
 class DoDirection {
     public:
-    void merge(void (*func)()) {
-        
+    //merge returns true if it should break out of the for loop
+    static bool merge(int currentRow, int currentColumn, int checkingRow, int checkingColumn, bool inverted) {
+        if (grid[checkingRow][checkingColumn] != 0) {
+            //If can merge
+            if (grid[checkingRow][checkingColumn] == grid[currentRow][currentColumn]) {
+                grid[currentRow][currentColumn] *= 2; //Double upper tile
+                grid[checkingRow][checkingColumn] = 0; //Destroy lower tile
+                if (inverted) {
+                    column = checkingRow + 1; //We only need to check past the tile we have just destroyed
+                }
+                else {
+                    column = checkingColumn + 1;
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
-    void move(void (*func)()) {
-        
+    static void mergeAndMove(void (*mergeFunc)(), void (*moveFunc)()) {
+        amountRemoved = 0;
+        forEach(mergeFunc, 4, 3);
+        forEach(moveFunc, 4, 3);
     }
-}; //TODO: finish this
-class DoUp {
+};
+class DoUp : DoDirection {
     //Everything's inverted here so we can stil use the forEach function. We are now iterating through the grid from top to bottom, then move one column right. Column = row, and row = column. All the other variables are not inverted.
     private:
     static void upMerge() {
         for (int checkingRow = column + 1; checkingRow < 4; checkingRow++) {
-            if (grid[checkingRow][row] != 0) {
-                //If can merge
-                if (grid[checkingRow][row] == grid[column][row]) {
-                    grid[column][row] *= 2; //Double upper tile
-                    grid[checkingRow][row] = 0; //Destroy lower tile
-                    column = checkingRow + 1; //We only need to check past the tile we have just destroyed
-                }
+            //merge returns true if it should break out of the for loop
+            if (merge(column, row, checkingRow, row, true)) {
                 break;
             }
         }
@@ -216,24 +233,16 @@ class DoUp {
     }
     public:
     static void doUp() {
-        amountRemoved = 0;
-        forEach(upMerge, 4, 3);
-        forEach(upMove, 4, 3);
+        mergeAndMove(upMerge, upMove);
     }
 };
-class DoDown {
+class DoDown : DoDirection {
     //Everything's inverted here so we can stil use the forEach function. We are now iterating through the grid from bottom to top, then move one column right. Column = row, and row = column. All the other variables are not inverted.
     private:
     static void downMerge() {
         int currentRow = 3-column; //Invert row (now we're looking from bottom to top)
         for (int checkingRow = currentRow - 1; checkingRow >= 0; checkingRow--) {
-            if (grid[checkingRow][row] != 0) {
-                //If can merge
-                if (grid[checkingRow][row] == grid[currentRow][row]) {
-                    grid[currentRow][row] *= 2; //Double right tile
-                    grid[checkingRow][row] = 0; //Destroy right tile
-                    column = checkingRow + 1; //We only need to check past the tile we have just destroyed
-                }
+            if (merge(currentRow, row, checkingRow, row, true)) {
                 break;
             }
         }
@@ -254,22 +263,14 @@ class DoDown {
     }
     public:
     static void doDown() {
-        amountRemoved = 0;
-        forEach(downMerge, 4, 3);
-        forEach(downMove, 4, 3);
+        mergeAndMove(downMerge, downMove);
     }
 };
-class DoLeft {
+class DoLeft : DoDirection {
     private:
     static void leftMerge() {
         for (int checkingColumn = column + 1; checkingColumn < 4; checkingColumn++) {
-            if (grid[row][checkingColumn] != 0) {
-                //If can merge
-                if (grid[row][checkingColumn] == grid[row][column]) {
-                    grid[row][column] *= 2; //Double left tile
-                    grid[row][checkingColumn] = 0; //Destroy right tile
-                    column = checkingColumn + 1; //We only need to check past the tile we have just destroyed
-                }
+            if (merge(row, column, row, checkingColumn, false)) {
                 break;
             }
         }
@@ -290,23 +291,15 @@ class DoLeft {
     }
     public:
     static void doLeft() {
-        amountRemoved = 0;
-        forEach(leftMerge, 4, 3);
-        forEach(leftMove, 4, 3);
+        mergeAndMove(leftMerge, leftMove);
     }
 };
-class DoRight {
+class DoRight : DoDirection {
     private:
     static void rightMerge() {
         int currentColumn = 3-column; //Invert column (now we're looking from right to left)
         for (int checkingColumn = currentColumn - 1; checkingColumn >= 0; checkingColumn--) {
-            if (grid[row][checkingColumn] != 0) {
-                //If can merge
-                if (grid[row][checkingColumn] == grid[row][currentColumn]) {
-                    grid[row][currentColumn] *= 2; //Double right tile
-                    grid[row][checkingColumn] = 0; //Destroy right tile
-                    column = checkingColumn + 1; //We only need to check past the tile we have just destroyed
-                }
+            if (merge(row, currentColumn, row, checkingColumn, false)) {
                 break;
             }
         }
@@ -327,9 +320,7 @@ class DoRight {
     }
     public:
     static void doRight() {
-        amountRemoved = 0;
-        forEach(rightMerge, 4, 3);
-        forEach(rightMove, 4, 3);       
+        mergeAndMove(rightMerge, rightMove);    
     }
 };
 class MergeAndMoveNumbers {
@@ -364,18 +355,20 @@ class CalculateScore {
         score = 0;
         forEach(addToScore);
         cout << "Game over, score: " << score << endl;
+        cout << "Press enter to exit\n";
+        cin.ignore();
     }
 };
 
 int main() {
     bool hasWon = false;
-    cout << "\033[2J\033[0;0H"; //Clear screen
     cout << "Enter w, a, s, or d to move numbers\n";
     while (alive) {
         PlaceNewNumber::placeNewNumber();
         ShowGrid::showGrid();
-        if (hasWon = false && IsThere2048::isThere2048()) {
+        if (hasWon == false && IsThere2048::isThere2048()) {
             IsThere2048::sendCongratulationMsg();
+            hasWon = true;
         }
         if (!Alive::alive()) {
             break;
@@ -386,7 +379,7 @@ int main() {
             GetInput::getInput();
             MergeAndMoveNumbers::mergeAndMoveNumbers();
         }
-        cout << "\033[2J\033[0;0H"; //Clear screen
+        cout << "\u001b[2J"; //Clear screen
     }
     CalculateScore::calculateScore();
     return 0;
