@@ -29,7 +29,7 @@ int score;
 int row;
 int column;
 bool doBreak;
-void forEach(void (*doThing)(), int rowEnd, int columnEnd) {
+void forEach(void (*doThing)(), const int rowEnd, const int columnEnd) {
     doBreak = false;
     for (row = 0; row < rowEnd; row++) {
         for (column = 0; column < columnEnd; column++) {
@@ -144,7 +144,7 @@ class Alive {
 
     static bool canNumbersMerge() {
         forEach(testHorizontal, 4, 3);
-        if (doBreak) return true;
+        if (doBreak) return true; //Return true if the above test passed
 
         forEach(testVertical, 3, 4);
         //If this test passed return true, otherwise return false
