@@ -29,7 +29,7 @@ int score;
 int row;
 int column;
 bool doBreak;
-void forEach(void (*doThing)(), int rowEnd, int columnEnd) {
+void forEach(void (*doThing)(), const int rowEnd, const int columnEnd) {
     doBreak = false;
     for (row = 0; row < rowEnd; row++) {
         for (column = 0; column < columnEnd; column++) {
@@ -131,25 +131,25 @@ class Alive {
         return false;
     }
 
+    static void testHorizontal() {
+        if (grid[row][column] == grid[row][column+1]) {
+            doBreak = true;
+        }
+    }
+
+    static void testVertical() {
+        if (grid[row][column] == grid[row+1][column]) {
+            doBreak = true;
+        }
+    }
+
     static bool canNumbersMerge() {
-        //Test horizontal
-        for (int row = 0; row < 4; row++) {
-            for (int column = 0; column < 3; column++) {
-                if (grid[row][column] == grid[row][column+1]) {
-                    return true;
-                }
-            }
-        }
-        //Test vertical
-        for (int row = 0; row < 3; row++) {
-            for (int column = 0; column < 4; column++) {
-                if (grid[row][column] == grid[row+1][column]) {
-                    return true;
-                }
-            }
-        }
-        //If all tests fail return false
-        return false;
+        forEach(testHorizontal, 4, 3);
+        if (doBreak) return true; //Return true if the above test passed
+
+        forEach(testVertical, 3, 4);
+        //If this test passed return true, otherwise return false
+        return doBreak;
     }
 
     public:
